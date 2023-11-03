@@ -39,7 +39,7 @@ func sortBased(numbers map[uint64]uint64) []Pair {
 }
 
 // Most Used Numbers in combination
-func (util *Utils) FindDupNums(List []uint64) string {
+func (util *Utils) FindDupNums(List []uint64, filtered bool) string {
 	DuplicatedNums := make(map[uint64]uint64)
 	for _, num := range List {
 		_, exists := DuplicatedNums[num]
@@ -50,13 +50,17 @@ func (util *Utils) FindDupNums(List []uint64) string {
 		}
 	}
 	// fmt.Println(DuplicatedNums)
-	// Disabling Filtration of 1 used digits or shall we ?
-	// FilteredNums := make(map[uint64]uint64)
-	// for num, count := range DuplicatedNums {
-	// 	if count > 1 {
-	// 		FilteredNums[num] = count
-	// 	}
-	// }
+	if filtered {
+		FilteredNums := make(map[uint64]uint64)
+		for num, count := range DuplicatedNums {
+			if count > 1 {
+				FilteredNums[num] = count
+			}
+		}
+		Sorted := sortBased(FilteredNums)
+		Dups := util.toJson(Sorted)
+		return Dups
+	}
 	Sorted := sortBased(DuplicatedNums)
 	Dups := util.toJson(Sorted)
 	return Dups
@@ -148,8 +152,8 @@ func DateToDay(dat string) (string, error) {
 	return dayOfWeek.String(), nil
 }
 
-func (util *Utils) toJson(pairs []Pair) (string) {
-	util.Logger.Log.Infof("Encoding Pair %v to Json", pairs)
+func (util *Utils) toJson(pairs interface{}) (string) {
+	util.Logger.Log.Debugf("Encoding Pair %v to Json", pairs)
 	stringPair, err := json.Marshal(pairs)
 	if err != nil {
 		util.Logger.Log.Error(err)
@@ -158,11 +162,15 @@ func (util *Utils) toJson(pairs []Pair) (string) {
 	return string(stringPair)
 }
 
-func FromJson(stringPair []byte) ([]Pair, error) {
-	var pairs []Pair
-	err := json.Unmarshal([]byte(stringPair), &pairs)
+func FromJson(stringPair []byte, p bool) (interface{}, error) {
+	var pairs interface{}
+	if p {
+		pairs = make([]Pair, 0)
+	} else {
+		pairs = make([]DataHold, 0)
+	}
+	err := json.Unmarshal(stringPair, &pairs)
 	if err != nil {
-
 		return nil, err
 	}
 	return pairs, nil

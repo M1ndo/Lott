@@ -38,25 +38,40 @@ func (m *DB) InitializeDB() chan error {
 
 func (m *DB) CreateTdaily() error {
 	query = `
-		CREATE TABLE IF NOT EXISTS anal (
+		CREATE TABLE IF NOT EXISTS analyzedD (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			year INTEGER,
-			month INTEGER,
-			day INTEGER,
+      month INTERGER,
       sday TEXT,
-			entry_time TEXT,
-			numbers INTEGER,
+			mostused TEXT
+		);
+  `
+	_, err := m.DB.Exec(query)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *DB) CreateTmonth() error {
+	query = `
+		CREATE TABLE IF NOT EXISTS analyzedD (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			year INTEGER,
 			mostused TEXT
 		);
   `
 	return nil
 }
 
-func (m *DB) CreateTmonth() error {
-	return nil
-}
-
 func (m *DB) CreateTweeky() error {
+	query = `
+		CREATE TABLE IF NOT EXISTS analyzedD (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			year INTEGER,
+			mostused TEXT
+		);
+  `
 	return nil
 }
 
@@ -129,7 +144,6 @@ func (m *DB) NumGetSday(year, month int, sday, entry string) ([]uint64, error) {
 		query = fmt.Sprintf("SELECT numbers from data where year = %d and month = %d and sday = '%s'", year, month, sday)
 	} else {
 		query = fmt.Sprintf("SELECT numbers from data where year = %d and month = %d and sday = '%s' and entry_time = '%s';", year, month, sday, entry)
-		fmt.Println(query)
 	}
 	return m.getNumbers(query)
 }
@@ -141,7 +155,7 @@ func (m *DB) ImportData(d map[string][]uint64, year, month int) error {
 		if day, time, _ := GetDate(date); day != 0 {
 			sday := NumToDate(month, year, day)
 			sday, _ = DateToDay(sday)
-			mostUsed := m.L.FindDupNums(numbers)
+			mostUsed := m.L.FindDupNums(numbers, false)
 			query := fmt.Sprintf("INSERT into data (year, month, day, sday, entry_time, numbers, mostused) values (?, ?, ?, ?, ?, ?, ?)")
 			_, err := m.DB.Exec(query, year, month, day, sday, Times[time], ConvertToStr(numbers), mostUsed)
 			if err != nil {
@@ -152,6 +166,39 @@ func (m *DB) ImportData(d map[string][]uint64, year, month int) error {
 	return nil
 }
 
-// func (m *DB) GetMostUsed(month string) (map[int][]uint64, error) {
+// Insert into Other Ts
+func (m *DB) InsertTo(table string, d []DataHold) error {
+	for _, entry := range d {
+		query := fmt.Sprintf("INSERT INTO %s (year, month, sday, mostused) values (?, ?, ?, ?)", table)
+		_, err := m.DB.Exec(query, entry.Year, entry.Month, entry.DayT ,entry.Nums)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-// }
+// Get Most Used Of Sdaily
+func (m *DB) GetMostUsed(table, day_entry string, year, month int) (string, error) {
+	var mostused string
+	if day_entry == "" {
+		query = fmt.Sprintf("SELECT mostused from %s where year = %d and month = %d;", table, year, month)
+	} else {
+		query = fmt.Sprintf("SELECT mostused from %s where year = %d and month = %d and sday = '%s';", table, year, month, day_entry)
+	}
+	rows, err := m.DB.Query(query)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err := rows.Scan(&mostused)
+		if err != nil {
+			return "", err
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return "", err
+	}
+	return mostused, nil
+}
