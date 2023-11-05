@@ -42,6 +42,7 @@ func (m *DB) CreateTdaily() error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			year INTEGER,
       month INTERGER,
+      day INTEGER,
       sday TEXT,
 			mostused TEXT
 		);
@@ -119,6 +120,12 @@ func (m *DB) getNumbers(query string) ([]uint64, error) {
 	return numbers, nil
 }
 
+// Get all numbers of a year
+func (m *DB) NumGetYear(year int) ([]uint64, error) {
+	query = fmt.Sprintf("SELECT numbers from data where year = %d;", year)
+	return m.getNumbers(query)
+}
+
 // Get all numbers of a month (with entry_time) from a particular year
 func (m *DB) NumGetMonth(year, month int, entry string) ([]uint64, error) {
 	if entry == "" {
@@ -129,12 +136,12 @@ func (m *DB) NumGetMonth(year, month int, entry string) ([]uint64, error) {
 	return m.getNumbers(query)
 }
 
-// Get numbers of a particular date and month or an entry.
-func (m *DB) NumGetDay(year, month, day int, entry string) ([]uint64, error) {
+// Get numbers of a particular date and with an entry.
+func (m *DB) NumGetDay(year, day int, entry string) ([]uint64, error) {
 	if entry == "" {
-		query = fmt.Sprintf("SELECT numbers from data where year = %d and month = %d and day = %d", year, month, day)
+		query = fmt.Sprintf("SELECT numbers from data where year = %d and day = %d", year, day)
 	} else {
-		query = fmt.Sprintf("SELECT numbers from data where year = %d and month = %d and day = %d and entry_time = '%s';", year, month, day, entry)
+		query = fmt.Sprintf("SELECT numbers from data where year = %d and day = %d and entry_time = '%s';", year, day, entry)
 	}
 	return m.getNumbers(query)
 }
@@ -169,8 +176,8 @@ func (m *DB) ImportData(d map[string][]uint64, year, month int) error {
 // Insert into Other Ts
 func (m *DB) InsertTo(table string, d []DataHold) error {
 	for _, entry := range d {
-		query := fmt.Sprintf("INSERT INTO %s (year, month, sday, mostused) values (?, ?, ?, ?)", table)
-		_, err := m.DB.Exec(query, entry.Year, entry.Month, entry.DayT ,entry.Nums)
+		query := fmt.Sprintf("INSERT INTO %s (year, month, day, sday, mostused) values (?, ?, ?, ?, ?)", table)
+		_, err := m.DB.Exec(query, entry.Year, entry.Month, entry.Day, entry.DayT ,entry.Nums)
 		if err != nil {
 			return err
 		}
@@ -179,26 +186,54 @@ func (m *DB) InsertTo(table string, d []DataHold) error {
 }
 
 // Get Most Used Of Sdaily
-func (m *DB) GetMostUsed(table, day_entry string, year, month int) (string, error) {
-	var mostused string
-	if day_entry == "" {
-		query = fmt.Sprintf("SELECT mostused from %s where year = %d and month = %d;", table, year, month)
-	} else {
-		query = fmt.Sprintf("SELECT mostused from %s where year = %d and month = %d and sday = '%s';", table, year, month, day_entry)
+// GetMostUsed retrieves the most used value based on the given parameters.
+func (m *DB) GetMostUsed(table, dayEntry string, year, day, month int) (string, error) {
+	if year == 0 {
+		return "", fmt.Errorf("Year cannot be empty")
 	}
+
+	if dayEntry == "" {
+		if day != 0 {
+			if month != 0 {
+				query = fmt.Sprintf("SELECT mostused FROM %s WHERE year = %d AND month = %d AND day = %d;", table, year, month, day)
+			} else {
+				query = fmt.Sprintf("SELECT mostused FROM %s WHERE year = %d AND day = %d;", table, year, day)
+			}
+		} else if month != 0 {
+			query = fmt.Sprintf("SELECT mostused FROM %s WHERE year = %d AND month = %d;", table, year, month)
+		} else if year != 0 {
+			query = fmt.Sprintf("SELECT mostused FROM %s WHERE year = %d ", table, year)
+		}
+	} else {
+		if month != 0 {
+			query = fmt.Sprintf("SELECT mostused FROM %s WHERE year = %d AND month = %d AND sday = '%s';", table, year, month, dayEntry)
+		} else {
+			query = fmt.Sprintf("SELECT mostused FROM %s WHERE year = %d AND sday = '%s';", table, year, dayEntry)
+		}
+	}
+
+	return m.getmostUsed(query)
+}
+
+
+func (m *DB) getmostUsed(query string) (string, error) {
+	var mostUsed string
+	m.L.Logger.Log.Debugf("Executing %s", query)
 	rows, err := m.DB.Query(query)
 	if err != nil {
 		return "", err
 	}
 	defer rows.Close()
+
 	for rows.Next() {
-		err := rows.Scan(&mostused)
+		err := rows.Scan(&mostUsed)
 		if err != nil {
 			return "", err
 		}
 	}
+
 	if err = rows.Err(); err != nil {
 		return "", err
 	}
-	return mostused, nil
+	return mostUsed, nil
 }
