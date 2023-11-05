@@ -152,7 +152,7 @@ func DateToDay(dat string) (string, error) {
 	return dayOfWeek.String(), nil
 }
 
-func (util *Utils) toJson(pairs interface{}) (string) {
+func (util *Utils) toJson(pairs []Pair) (string) {
 	util.Logger.Log.Debugf("Encoding Pair %v to Json", pairs)
 	stringPair, err := json.Marshal(pairs)
 	if err != nil {
@@ -162,13 +162,9 @@ func (util *Utils) toJson(pairs interface{}) (string) {
 	return string(stringPair)
 }
 
-func FromJson(stringPair []byte, p bool) (interface{}, error) {
-	var pairs interface{}
-	if p {
-		pairs = make([]Pair, 0)
-	} else {
-		pairs = make([]DataHold, 0)
-	}
+func FromJson(stringPair []byte) ([]Pair, error) {
+	var pairs []Pair
+	pairs = make([]Pair, 0)
 	err := json.Unmarshal(stringPair, &pairs)
 	if err != nil {
 		return nil, err

@@ -17,64 +17,14 @@ import (
 	"github.com/m1ndo/Lott/utils"
 )
 
-type Lott struct {
-	utils.Utils
-	utils.DB
-}
-
-var (
-	a = &Lott{
-		Utils: utils.Utils{},
-		DB: utils.DB{},
-	}
-)
-
 func main() {
-	// Set Logger
-	a.SetLogger()
-	a.DB.L = &a.Utils
-	// DB INit
-	errCh := a.DB.InitializeDB()
-	for err := range errCh {
-		a.Logger.Log.Error(err)
-	}
-	// Parse Flags
-	VarsUsed := utils.Parse()
-	if VarsUsed.HtmlFile != "" {
-		data := utils.GetDataFF(VarsUsed.HtmlFile)
-		err := a.DB.ImportData(data, VarsUsed.Year, VarsUsed.Month)
-		if err != nil {
-			a.Logger.Log.Error(err)
-		}
-	}
-	// if VarsUsed.File != "" {
-	// 	AllNums := a.ReadNumbers(VarsUsed.File)
-	// 	FindDupls := a.FindDupNums(AllNums)
-	// 	a.Logger.Log.Infof("Numbers that are most picked (high to low)")
-	// 	for _, num := range FindDupls {
-	// 		a.Logger.Log.Infof("Number %d, Count %d", num.Number, num.Count)
-	// 	}
-	// }
-	// // Get Numbers of a day
-	// nums, err := a.DB.NumGetDay(VarsUsed.Year, VarsUsed.Month, VarsUsed.Day, VarsUsed.Entry)
-	// if err != nil {
-	// 	a.Logger.Log.Error(err)
-	// }
-	// a.Logger.Log.Infof("Day %d %v Numbers", VarsUsed.Day, nums)
-	// // Get Numbers of a String day
-	// nums, err = a.DB.NumGetSday(VarsUsed.Year, VarsUsed.Month, VarsUsed.Sday, VarsUsed.Entry)
-	// if err != nil {
-	// 	a.Logger.Log.Error(err)
-	// }
-	// a.Logger.Log.Infof("Day %s %v Numbers", VarsUsed.Sday, nums)
-
-	// // Get Number of a month
-	// nums, err = a.DB.NumGetMonth(VarsUsed.Year, VarsUsed.Month, VarsUsed.Entry)
-	// if err != nil {
-	// 	a.Logger.Log.Error(err)
-	// }
-	// a.Logger.Log.Infof("Month %d %v Numbers", VarsUsed.Month, nums)
-
-	// Get Numbers of a sday
-	a.Logger.Log.Info("Nothing to do")
+	app := utils.NewApp()
+	// app.DB.AnalyzeSDay(2023)
+	// app.DB.AnalyzeDay(2023)
+	// app.DB.AnalyzeM(2023)
+	// app.DB.AnalyzeY(2023)
+	app.SdayTable(2023, 0, "Monday-morning")
+	app.SdayTable(2023, 0, "Monday-noon")
+	app.SdayTable(2023, 0, "Monday-night")
+	app.Logger.Log.Info("Nothing to do")
 }
