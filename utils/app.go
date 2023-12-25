@@ -54,25 +54,39 @@ func (app *Lott) ParserFlags() {
 		app.Logger.Log.Infof("Numbers that are most picked of day %d", VarsUsed.Month)
 	case VarsUsed.Ayear:
 		app.Logger.Log.Infof("Numbers that are most picked of day %d", VarsUsed.Year)
+	case VarsUsed.EntryAnalyze:
+		// app.DB.GetMostDate()
+		// app.ShowAnalyzed(VarsUsed.Year)
+		// app.InsanelyLucky()
+		// app.ShowAnalyzed2()
+		app.ShowWeird()
+		// Analyze dates
+			// if VarsUsed.Year != 0 {
+		// 	app.DB.AnalyzeEntry(VarsUsed.Year)
+		// } else {
+		// 	for i := 2020; i < 2024; i++ {
+		// 		app.DB.AnalyzeEntry(i)
+		// 	}
+		// }
 	}
 }
 
 // // Get Numbers of a day
 // nums, err := a.DB.NumGetDay(VarsUsed.Year, VarsUsed.Month, VarsUsed.Day, VarsUsed.Entry)
-	// if err != nil {
-	// 	a.Logger.Log.Error(err)
-	// }
-	// a.Logger.Log.Infof("Day %d %v Numbers", VarsUsed.Day, nums)
-	// // Get Numbers of a String day
-	// nums, err = a.DB.NumGetSday(VarsUsed.Year, VarsUsed.Month, VarsUsed.Sday, VarsUsed.Entry)
-	// if err != nil {
-	// 	a.Logger.Log.Error(err)
-	// }
-	// a.Logger.Log.Infof("Day %s %v Numbers", VarsUsed.Sday, nums)
+// if err != nil {
+// 	a.Logger.Log.Error(err)
+// }
+// a.Logger.Log.Infof("Day %d %v Numbers", VarsUsed.Day, nums)
+// // Get Numbers of a String day
+// nums, err = a.DB.NumGetSday(VarsUsed.Year, VarsUsed.Month, VarsUsed.Sday, VarsUsed.Entry)
+// if err != nil {
+// 	a.Logger.Log.Error(err)
+// }
+// a.Logger.Log.Infof("Day %s %v Numbers", VarsUsed.Sday, nums)
 
-	// // Get Number of a month
-	// nums, err = a.DB.NumGetMonth(VarsUsed.Year, VarsUsed.Month, VarsUsed.Entry)
-	// if err != nil {
+// // Get Number of a month
+// nums, err = a.DB.NumGetMonth(VarsUsed.Year, VarsUsed.Month, VarsUsed.Entry)
+// if err != nil {
 	// 	a.Logger.Log.Error(err)
 	// }
 	// a.Logger.Log.Infof("Month %d %v Numbers", VarsUsed.Month, nums)

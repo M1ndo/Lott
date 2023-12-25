@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"strings"
 )
 
 var (
@@ -15,6 +16,11 @@ type DataHold struct {
 	Year  int
 	Day   int
 }
+
+type myRes map[string][]uint64
+type myResult map[string]myRes
+type day map[string]int64
+type month map[int64]day
 
 const (
 	NumIter = 13
@@ -108,4 +114,99 @@ func (m *DB) AnalyzeY(year int) {
 	if err != nil {
 		m.L.Logger.Log.Error(err)
 	}
+}
+
+// Analyzing each entry in a whole year.
+// Getting an entry of the morning and add it run a match on it.
+// Could be missed by 1 number.
+func (m *DB) AnalyzeEntry(year int) {
+	var result myResult
+	m.L.Logger.Log.Infof("Analyzing Jackpot year %d", year)
+	result = make(myResult)
+	totalDays := make(map[int]int)
+
+	for d := 1; d < 13; d++ {
+		if _, ok := totalDays[d]; !ok {
+			totalDays[d] = m.Total_days(d)
+		}
+		m.L.Logger.Log.Infof("Analyzing Jackpot year %d, month %d", year, d)
+		for i := 1; i < totalDays[d]+1; i++ {
+			for n := 1; n < 4; n++ {
+				entry_numbers, err := m.NumGetDayTime(year, i, d, Times[n])
+				m.L.HandleError(err)
+				returned := m.centry(entry_numbers, year)
+				if len(returned) != 0 {
+					date := fmt.Sprintf("%s_%s", NumToDate(d, year, i), Times[n])
+					// m.L.Logger.Log.Debugf("Found and adding %s", date)
+					result[date] = returned
+				}
+			}
+		}
+	}
+	for date, matches := range result {
+		entry_date, entry_time := m.L.SplitDate(date)
+		year, month, day := m.L.dateToNum(entry_date)
+		for k, c := range matches {
+			mentry_date, mentry_time := m.L.SplitDate(k)
+			myear, mmonth, mday := m.L.dateToNum(mentry_date)
+			m.ImportJack(year, month, day, myear, mmonth, mday, entry_time, mentry_time, c)
+		}
+	}
+	// m.L.myResultToJson(result)
+	// data := m.L.jsonTomyResult()
+	// // fmt.Println(data)
+}
+
+// Continuation of Function Above
+func (m *DB) centry(row []uint64, year int) map[string][]uint64 {
+	matchedNum := make(map[string][]uint64)
+	totalDays := make(map[int]int)
+
+	for i := 1; i < 13; i++ {
+		if _, ok := totalDays[i]; !ok {
+			totalDays[i] = m.Total_days(i)
+		}
+		for d := 1; d < totalDays[i]+1; d++ {
+			for n := 1; n < 4; n++ {
+				thisday_numbers, err := m.NumGetDayTime(year, d, i, Times[n])
+				m.L.HandleError(err)
+				tempcomp := make(map[uint64]struct{})
+				for _, num := range thisday_numbers {
+					tempcomp[num] = struct{}{}
+				}
+				count := 0
+				var matches []uint64
+				for _, num := range row {
+					if _, exists := tempcomp[num]; exists {
+						count++
+						matches = append(matches, num)
+					}
+				}
+				if count >= 11 && count != 20 {
+					date := fmt.Sprintf("%s_%s", NumToDate(i, year, d), Times[n])
+					matchedNum[date] = matches
+				}
+			}
+		}
+	}
+	return matchedNum
+}
+
+// Sort Jackpot Data
+func (m *DB) GetMostDate(year int) month {
+	data := m.AnalyzedJackPot(year)
+	listings := make(month)
+	for d, m := range data {
+		dayformat := strings.Split(d, "_")
+		dayd := fmt.Sprintf("%s_%s", dayformat[0], dayformat[1])
+		if listings[m] == nil {
+			listings[m] = make(day)
+		}
+		daye := listings[m]
+		if daye[dayd] >= 0 {
+			daye[dayd] += 1
+		}
+		listings[m] = daye
+	}
+	return listings
 }

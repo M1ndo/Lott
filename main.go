@@ -19,12 +19,13 @@ import (
 
 func main() {
 	app := utils.NewApp()
+	// app.DB.AnalyzeEntry(2023)
 	// app.DB.AnalyzeSDay(2023)
 	// app.DB.AnalyzeDay(2023)
 	// app.DB.AnalyzeM(2023)
 	// app.DB.AnalyzeY(2023)
-	app.SdayTable(2023, 0, "Monday-morning")
-	app.SdayTable(2023, 0, "Monday-noon")
-	app.SdayTable(2023, 0, "Monday-night")
+	// app.SdayTable(2023, 0, "Monday-morning")
+	// app.SdayTable(2023, 0, "Monday-noon")
+	// app.SdayTable(2023, 0, "Monday-night")
 	app.Logger.Log.Info("Nothing to do")
 }
