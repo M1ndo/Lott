@@ -92,73 +92,78 @@ func ConvertToStr(Nums []uint64) string {
 
 	numbersJoined := strings.Join(numbersStr, ",")
 	return numbersJoined
-	}
+}
 
-	func (util *Utils) ReadNumbers(file string) []uint64 {
-		numbers := make([]uint64, 0)
-		Numbers, err := os.Open(file)
+func (util *Utils) ReadNumbers(file string) []uint64 {
+	numbers := make([]uint64, 0)
+	Numbers, err := os.Open(file)
+	if err != nil {
+		util.Logger.Log.Error(err)
+	}
+	defer Numbers.Close()
+	scanner := bufio.NewScanner(Numbers)
+	for scanner.Scan() {
+		line := scanner.Text()
+		number, err := strconv.ParseUint(line, 10, 64)
 		if err != nil {
 			util.Logger.Log.Error(err)
 		}
-		defer Numbers.Close()
-		scanner := bufio.NewScanner(Numbers)
-		for scanner.Scan() {
-			line := scanner.Text()
-			number, err := strconv.ParseUint(line, 10, 64)
-			if err != nil {
-				util.Logger.Log.Error(err)
-			}
-			numbers = append(numbers, number)
-		}
-
-		if err := scanner.Err(); err != nil {
-			util.Logger.Log.Error(err)
-		}
-		return numbers
+		numbers = append(numbers, number)
 	}
 
-	// Retrieve date from a string
-	func GetDate(str string) (int, int, error) {
-		numbers := strings.Split(str, " ")
-		if len(numbers) >= 2 {
-			firstNumber, err := strconv.Atoi(numbers[0])
-			if err != nil {
-				return 0, 0, err
-			}
-
-			secondNumber, err := strconv.Atoi(numbers[1])
-			if err != nil {
-				return 0, 0, err
-			}
-
-			return firstNumber, secondNumber, nil
-		}
-		return 0, 0, nil
+	if err := scanner.Err(); err != nil {
+		util.Logger.Log.Error(err)
 	}
+	return numbers
+}
 
-	// Convert an interger to a string
-	func quickConv(i int) string {
-		return strconv.FormatInt(int64(i), 10)
-	}
-
-	// Create a date string
-	func NumToDate(month, year, day int) string {
-		return  quickConv(year) + "/" +quickConv(month) + "/" + quickConv(day)
-	}
-
-	// Get the day of the week
-	func DateToDay(dat string) (string, error) {
-		date, err := time.Parse("2006/1/2", dat)
+// Retrieve date from a string
+func GetDate(str string) (int, int, error) {
+	numbers := strings.Split(str, " ")
+	if len(numbers) >= 2 {
+		firstNumber, err := strconv.Atoi(numbers[0])
 		if err != nil {
-			fmt.Println("Error parsing date:", err)
-			return "", nil
+			return 0, 0, err
 		}
-		dayOfWeek := date.Weekday()
-		return dayOfWeek.String(), nil
-	}
 
-	// Convert a pair to json
-func (util *Utils) toJson(pairs []Pair) (string) {
+		secondNumber, err := strconv.Atoi(numbers[1])
+		if err != nil {
+			return 0, 0, err
+		}
+
+		return firstNumber, secondNumber, nil
+	}
+	return 0, 0, nil
+}
+
+// Convert an interger to a string
+func quickConv(i int) string {
+	return strconv.FormatInt(int64(i), 10)
+}
+
+// Create a date string
+func NumToDate(month, year, day int) string {
+	return quickConv(year) + "/" + quickConv(month) + "/" + quickConv(day)
+}
+
+func NumToDate2(year, month, day int, entry string) string {
+	return fmt.Sprintf("%d/%d/%d_%s", year, month, day, entry)
+}
+
+
+// Get the day of the week
+func DateToDay(dat string) (string, error) {
+	date, err := time.Parse("2006/1/2", dat)
+	if err != nil {
+		fmt.Println("Error parsing date:", err)
+		return "", nil
+	}
+	dayOfWeek := date.Weekday()
+	return dayOfWeek.String(), nil
+}
+
+// Convert a pair to json
+func (util *Utils) toJson(pairs []Pair) string {
 	util.Logger.Log.Debugf("Encoding Pair %v to Json", pairs)
 	stringPair, err := json.Marshal(pairs)
 	if err != nil {
@@ -182,7 +187,7 @@ func FromJson(stringPair []byte) ([]Pair, error) {
 // Encode a myResult type to json
 func (Util *Utils) myResultToJson(result myResult) {
 	decoded := Util.jsonTomyResult()
-	for k,r := range result {
+	for k, r := range result {
 		decoded[k] = r
 	}
 	encoded, err := json.Marshal(decoded)
@@ -223,6 +228,13 @@ func (Util *Utils) SplitDate(c string) (string, string) {
 	return entry_date, entry_time
 }
 
+// Split a string date v2
+func (Util *Utils) SplitDateV2(c string) (string, string) {
+	entry := strings.Split(c, "/")
+	return entry[0], entry[1]
+}
+
+// Return a string date into numbers,
 func (Util *Utils) dateToNum(d string) (int, int, int) {
 	t, err := time.Parse("2006/1/2", d)
 	Util.HandleError(err)
@@ -230,6 +242,32 @@ func (Util *Utils) dateToNum(d string) (int, int, int) {
 	return year, month, day
 }
 
+// Format Date into a string
 func (Util *Utils) FormatDate(month, day int, entry string) string {
 	return fmt.Sprintf("%d/%d_%s", month, day, entry)
+}
+
+// Check if a list of maps contains a key
+func ContainsKey(List []map[int][]uint64, key int) bool {
+	for _, m := range List {
+		if _, ok := m[key]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// Compare two lists and return duplicated Numbers
+func FilterDups(ListA, ListB []uint64) []uint64 {
+	common := []uint64{}
+	count := map[uint64]bool{}
+	for _, num := range ListA {
+		count[num] = true
+	}
+	for _, num := range ListB {
+		if _, found := count[num]; found {
+			common = append(common, num)
+		}
+	}
+	return common
 }

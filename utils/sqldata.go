@@ -10,10 +10,10 @@ import (
 
 type DB struct {
 	DB *sql.DB
-	L *Utils
+	L  *Utils
 }
 
-var Times = map[int]string{1:"morning", 2:"noon", 3:"night"}
+var Times = map[int]string{1: "morning", 2: "noon", 3: "night"}
 var query string
 
 func (m *DB) InitializeDB() chan error {
@@ -30,6 +30,9 @@ func (m *DB) InitializeDB() chan error {
 			chErrors <- fmt.Errorf("failed to create table: %w", err)
 		}
 		if err := m.CJackpot(); err != nil {
+			chErrors <- fmt.Errorf("failed to create table: %w", err)
+		}
+		if err := m.TestCJackpot(); err != nil {
 			chErrors <- fmt.Errorf("failed to create table: %w", err)
 		}
 		if err := m.CreateTdaily(); err != nil {
@@ -122,11 +125,37 @@ func (m *DB) CJackpot() error {
 	return nil
 }
 
+func (m *DB) TestCJackpot() error {
+	query = `
+		CREATE TABLE IF NOT EXISTS testjackpot (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			year INTEGER,
+			month INTEGER,
+			day INTEGER,
+			entry_time TEXT,
+			myear INTEGER,
+			mmonth INTEGER,
+			mday INTEGER,
+			mentry_time TEXT,
+			numbers INTEGER
+		);
+	`
+	_, err := m.DB.Exec(query)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func (m *DB) getNumbers(query string) ([]uint64, error) {
 	var numbers []uint64
+	conn, err := sql.Open("sqlite3", "luck.db")
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
 	m.L.Logger.Log.Debugf("Executing query getNumbers %s", query)
-	rows, err := m.DB.Query(query)
+	rows, err := conn.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +166,7 @@ func (m *DB) getNumbers(query string) ([]uint64, error) {
 		if err != nil {
 			return nil, err
 		}
-    numrs, _ := ConvertToInt(nums)
+		numrs, _ := ConvertToInt(nums)
 		for _, n := range numrs {
 			numbers = append(numbers, n)
 		}
@@ -173,7 +202,6 @@ func (m *DB) NumGetDay(year, day int, entry string) ([]uint64, error) {
 	}
 	return m.getNumbers(query)
 }
-
 
 // Get numbers of a particular day and a month and with an entry.
 func (m *DB) NumGetDayTime(year, day, month int, entry string) ([]uint64, error) {
@@ -227,7 +255,7 @@ func (m *DB) ImportJack(year, month, day, myear, mmonth, mday int, entry, mentry
 func (m *DB) InsertTo(table string, d []DataHold) error {
 	for _, entry := range d {
 		query := fmt.Sprintf("INSERT INTO %s (year, month, day, sday, mostused) values (?, ?, ?, ?, ?)", table)
-		_, err := m.DB.Exec(query, entry.Year, entry.Month, entry.Day, entry.DayT ,entry.Nums)
+		_, err := m.DB.Exec(query, entry.Year, entry.Month, entry.Day, entry.DayT, entry.Nums)
 		if err != nil {
 			return err
 		}
@@ -264,11 +292,15 @@ func (m *DB) GetMostUsed(table, dayEntry string, year, day, month int) (string, 
 	return m.getmostUsed(query)
 }
 
-
 func (m *DB) getmostUsed(query string) (string, error) {
 	var mostUsed string
+	conn, err := sql.Open("sqlite3", "luck.db")
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
 	m.L.Logger.Log.Debugf("Executing %s", query)
-	rows, err := m.DB.Query(query)
+	rows, err := conn.Query(query)
 	if err != nil {
 		return "", err
 	}
@@ -346,6 +378,61 @@ func (m *DB) getJackPotNums(year, month, day int, entry string) string {
 	return numbers
 }
 
+func (m *DB) GetJackPot() [][]uint64 {
+	query := "SELECT numbers from jackpot;"
+	data := [][]uint64{}
+	rows, err := m.DB.Query(query)
+	m.L.HandleError(err)
+	defer rows.Close()
+	for rows.Next() {
+		var nums string
+		err := rows.Scan(&nums)
+		m.L.HandleError(err)
+		numers, _ := ConvertToInt(nums)
+		data = append(data, numers)
+	}
+	return data
+}
+
+func (m *DB) GetJNumbers(month, day int) (map[string]int, [][]uint64) {
+	query := fmt.Sprintf("SELECT numbers, myear, mmonth, mday, mentry_time from jackpot where month = %d and day = %d;", month, day)
+	data := [][]uint64{}
+	data2 := make(map[string]int)
+	rows, err := m.DB.Query(query)
+	m.L.HandleError(err)
+	defer rows.Close()
+	for rows.Next() {
+		var nums string
+		var year int
+		var month int
+		var day int
+		var entry_time string
+		err := rows.Scan(&nums, &year, &month, &day, &entry_time)
+		date := fmt.Sprintf("%s_%s", NumToDate(month, year, day), entry_time)
+		m.L.HandleError(err)
+		numers, _ := ConvertToInt(nums)
+		data = append(data, numers)
+		data2[date]++
+	}
+	return data2, data
+}
+
+func (m *DB) FuckingFuck() [][]uint64 {
+	query := "SELECT numbers from data;"
+	data := [][]uint64{}
+	rows, err := m.DB.Query(query)
+	m.L.HandleError(err)
+	defer rows.Close()
+	for rows.Next() {
+		var nums string
+		err := rows.Scan(&nums)
+		m.L.HandleError(err)
+		numers, _ := ConvertToInt(nums)
+		data = append(data, numers)
+	}
+	return data
+}
+
 func (m *DB) JackPotNumbers(year int) map[int][][]uint64 {
 	query := fmt.Sprintf("SELECT numbers from jackpot where year = %d", year)
 	data := make(map[int][][]uint64)
@@ -356,8 +443,101 @@ func (m *DB) JackPotNumbers(year int) map[int][][]uint64 {
 		var nums string
 		err := rows.Scan(&nums)
 		m.L.HandleError(err)
-    numrs, _ := ConvertToInt(nums)
+		numrs, _ := ConvertToInt(nums)
 		data[year] = append(data[year], numrs)
+	}
+	m.L.HandleError(rows.Err())
+	return data
+}
+
+// return dates based on a numbers.
+func (m *DB) GetjDates(numbers string) ([]string, []string) {
+	query := fmt.Sprintf("SELECT year, myear, month, mmonth, day, mday, entry_time, mentry_time from jackpot where numbers = '%s';", numbers)
+	m.L.Logger.Log.Debugf("Executing GetjDates query %s", query)
+	var date_1 = []string{}
+	var date_2 = []string{}
+	rows, err := m.DB.Query(query)
+	m.L.HandleError(err)
+	defer rows.Close()
+	for rows.Next() {
+		var year int
+		var myear int
+		var month int
+		var mmonth int
+		var day int
+		var mday int
+		var entry_time string
+		var mentry_time string
+		err := rows.Scan(&year, &myear, &month, &mmonth, &day, &mday, &entry_time, &mentry_time)
+		date := fmt.Sprintf("%s_%s", NumToDate(month, year, day), entry_time)
+		date2 := fmt.Sprintf("%s_%s", NumToDate(mmonth, myear, mday), mentry_time)
+		m.L.HandleError(err)
+		date_1 = append(date_1, date)
+		date_2 = append(date_2, date2)
+	}
+	return date_1, date_2
+}
+
+func (m *DB) GetJDates(month, day, entry string) map[int][]string {
+	query := fmt.Sprintf("SELECT year, myear, mmonth, mday, mentry_time from jackpot where month = %s and day = %s and entry_time = '%s';", month, day, entry)
+	m.L.Logger.Log.Debugf("Executing GetJDates Query %s", query)
+	results := make(map[int][]string)
+	rows, err := m.DB.Query(query)
+	m.L.HandleError(err)
+	defer rows.Close()
+	for rows.Next() {
+		var year int
+		var myear int
+		var mmonth int
+		var mday int
+		var mentry_time string
+		err := rows.Scan(&year, &myear, &mmonth, &mday, &mentry_time)
+		date := fmt.Sprintf("%s_%s", NumToDate(mmonth, myear, mday), mentry_time)
+		m.L.HandleError(err)
+		results[year] = append(results[year], date)
+	}
+	return results
+}
+
+// Get Dates and their numbers Based on a date in jackpot
+func (m *DB) RetrieveDates(month, day int, entry string) map[int][]map[string]string {
+	query := fmt.Sprintf("select year, myear, mmonth, mday, mentry_time, numbers from jackpot where month = %d and day = %d and entry_time = '%s';", month, day, entry)
+	m.L.Logger.Log.Debugf("Executing RetrieveDates Query %s", query)
+	retrievedDates := make(map[int][]map[string]string)
+	rows, err := m.DB.Query(query)
+	m.L.HandleError(err)
+	defer rows.Close()
+	for rows.Next() {
+		var year int
+		var myear int
+		var mmonth int
+		var mday int
+		var mentry_time string
+		var numbers string
+		resultdate := make(map[string]string)
+		err := rows.Scan(&year, &myear, &mmonth, &mday, &mentry_time, &numbers)
+		date := fmt.Sprintf("%s_%s", NumToDate(mmonth, myear, mday), mentry_time)
+		m.L.HandleError(err)
+		resultdate[date] = numbers
+		retrievedDates[year] = append(retrievedDates[year], resultdate)
+	}
+	return retrievedDates
+}
+
+func (m *DB) getDNumbers(month, day int, entry string) (map[int][]uint64) {
+	query := fmt.Sprintf("select year, numbers from data where month = %d and day = %d and entry_time = '%s';", month, day, entry)
+	data := make(map[int][]uint64)
+	m.L.Logger.Log.Debugf("Executing query getDNumbers %s", query)
+	rows, err := m.DB.Query(query)
+	m.L.HandleError(err)
+	defer rows.Close()
+	for rows.Next() {
+		var nums string
+		var year int
+		err := rows.Scan(&year, &nums)
+		m.L.HandleError(err)
+		numrs, _ := ConvertToInt(nums)
+		data[year] = numrs
 	}
 	m.L.HandleError(rows.Err())
 	return data

@@ -56,12 +56,19 @@ func (app *Lott) ParserFlags() {
 		app.Logger.Log.Infof("Numbers that are most picked of day %d", VarsUsed.Year)
 	case VarsUsed.EntryAnalyze:
 		// app.DB.GetMostDate()
+		app.DB.MarkedDates2(VarsUsed.Month, VarsUsed.Day, VarsUsed.Entry) // Marked Dates
+		// app.ShowMarked(VarsUsed.Month)
 		// app.ShowAnalyzed(VarsUsed.Year)
-		// app.InsanelyLucky()
+		// app.InsanelyLucky() // Jackpot numbers
+		// app.FuckingBeIt()
+		// app.AnotherFuck()
+		// app.MonthTwelve()
 		// app.ShowAnalyzed2()
-		app.ShowWeird()
+		// app.ShowWeird()
+		// app.DB.AnalyzeSuccess() // All Analyzsis
+		// app.DB.quickTest()
 		// Analyze dates
-			// if VarsUsed.Year != 0 {
+		// if VarsUsed.Year != 0 {
 		// 	app.DB.AnalyzeEntry(VarsUsed.Year)
 		// } else {
 		// 	for i := 2020; i < 2024; i++ {
